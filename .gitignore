@@ -1,0 +1,8 @@
+# Local secrets - never commit
+.env
+*.tmdb_key
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store
