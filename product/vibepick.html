@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibePick — Find something to watch</title>
+  <style>
+    :root { --brand: #2D5D8A; --brand-light: #E8F0F7; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      background: #f7f8fa; color: #222; line-height: 1.5; max-width: 720px; margin: 0 auto; padding: 0 0 140px; }
+    header { background: var(--brand); color: white; padding: 16px 20px; position: sticky; top: 0; z-index: 10; }
+    header h1 { font-size: 18px; font-weight: 600; }
+    header p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    main { padding: 20px; }
+    .chat { display: flex; flex-direction: column; gap: 12px; }
+    .msg-user { background: var(--brand-light); border: 1px solid var(--brand);
+      border-radius: 12px; padding: 12px 14px; align-self: flex-end; max-width: 85%; font-size: 14px; }
+    .msg-ai-label { font-size: 12px; color: var(--brand); font-weight: 600; margin: 8px 0 0; }
+    .msg-ai-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    .msg-ai-badge { background: var(--brand-light); color: var(--brand); font-size: 10px;
+      padding: 2px 8px; border-radius: 10px; }
+    .card { background: white; border: 1px solid #d0d7de; border-radius: 12px;
+      padding: 14px; display: flex; gap: 12px; align-items: flex-start;
+      cursor: pointer; transition: transform .1s, box-shadow .1s; }
+    .card:hover:not(.picked) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .card.picked { border-color: #2ea043; background: #f0fff4; cursor: default; }
+    .card.picked:hover { transform: none; box-shadow: none; }
+    .poster { width: 80px; height: 110px; background: #d0d0d0; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; color: #777; font-size: 11px; flex-shrink: 0; overflow: hidden; }
+    .poster img { width: 100%; height: 100%; object-fit: cover; }
+    .info { flex: 1; min-width: 0; }
+    .info h3 { font-size: 15px; margin-bottom: 4px; }
+    .info .meta { font-size: 12px; color: #666; margin-bottom: 6px; }
+    .info .platforms { font-size: 11px; color: var(--brand); margin-bottom: 6px; font-weight: 500; }
+    .info .rationale { font-size: 13px; color: #444; font-style: italic; line-height: 1.45; }
+    .input-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 720px; background: white;
+      border-top: 1px solid #d0d7de; padding: 10px 16px;
+      display: flex; gap: 8px; align-items: center; }
+    .input-bar input { flex: 1; padding: 10px 14px; border: 1px solid #d0d7de; border-radius: 24px;
+      font-size: 14px; outline: none; font-family: inherit; }
+    .input-bar input:focus { border-color: var(--brand); }
+    .input-bar button { background: var(--brand); color: white; border: none; border-radius: 50%;
+      width: 40px; height: 40px; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; }
+    .input-bar button:disabled { background: #ccc; cursor: not-allowed; }
+    .thanks { background: #dafbe1; border: 1px solid #2ea043; border-radius: 12px;
+      padding: 20px; text-align: center; color: #1a7f37; font-size: 16px; margin-top: 16px; }
+    .thanks .picked-title { font-size: 18px; font-weight: 600; margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>VibePick</h1>
+    <p>Tell me what you want to watch</p>
+  </header>
+  <main><div id="chat" class="chat"></div></main>
+  <div class="input-bar">
+    <input id="userInput" type="text" placeholder="e.g. I'm stressed, want something light for 45 min, with my partner" autocomplete="off">
+    <button id="sendBtn" onclick="handleSend()">↑</button>
+  </div>
+<script>
+// ============================================================
+// 25-movie catalog with extended metadata:
+// moods (emotional tone), styles (visual/character/story focus),
+// audience (social context), culture (origin/era)
+// ============================================================
+const MOVIES = [
+  {id:550988,title:"Free Guy",year:2021,runtime:115,genres:["comedy","action"],moods:["light","funny","energetic"],styles:["fun","energetic"],audience:["friends","date","solo"],culture:["mainstream","blockbuster"],country:"USA",platforms:["Disney+","Hulu"],poster:"/9w0lt8JoTUlTHdD4MNFQ3A45N1l.jpg"},
+  {id:122906,title:"About Time",year:2013,runtime:124,genres:["romance","comedy"],moods:["light","warm","feel-good"],styles:["character","emotional"],audience:["date","family","solo"],culture:["mainstream"],country:"UK",platforms:["Netflix"],poster:"/iR1HO5DeJa3cR9x2c7kIVM7ugrl.jpg"},
+  {id:10193,title:"Toy Story 3",year:2010,runtime:103,genres:["animation","comedy","family"],moods:["light","warm","feel-good"],styles:["character","fun"],audience:["family","kids","friends"],culture:["mainstream"],country:"USA",platforms:["Disney+"],poster:"/AbbXspFUwdIDGkknMWqMQnq81rz.jpg"},
+  {id:354912,title:"Coco",year:2017,runtime:105,genres:["animation","family"],moods:["warm","feel-good","emotional"],styles:["visual","character"],audience:["family","kids","friends"],culture:["international","mainstream"],country:"USA",platforms:["Disney+"],poster:"/gGEsBPAijhVUFoiNpgZXqRVWJt2.jpg"},
+  {id:129,title:"Spirited Away",year:2001,runtime:125,genres:["animation","fantasy"],moods:["warm","imaginative","emotional"],styles:["visual","imaginative"],audience:["family","kids","solo"],culture:["international","anime","classic"],country:"Japan",platforms:["HBO Max"],poster:"/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg"},
+  {id:372058,title:"Your Name.",year:2016,runtime:106,genres:["animation","romance"],moods:["warm","emotional","imaginative"],styles:["visual","emotional"],audience:["date","solo","friends"],culture:["international","anime"],country:"Japan",platforms:["HBO Max"],poster:"/q719jXXEzOoYaps6babgKnONONX.jpg"},
+  {id:324857,title:"Spider-Man: Into the Spider-Verse",year:2018,runtime:117,genres:["animation","action"],moods:["energetic","stylish","funny"],styles:["visual","fun"],audience:["friends","family","kids"],culture:["mainstream","blockbuster"],country:"USA",platforms:["Netflix"],poster:"/iiZZdoQBEYBv6id8su7EvL2PFBu.jpg"},
+  {id:284053,title:"Thor: Ragnarok",year:2017,runtime:130,genres:["action","comedy"],moods:["funny","energetic","light"],styles:["fun","energetic"],audience:["friends","solo","family"],culture:["mainstream","blockbuster"],country:"USA",platforms:["Disney+"],poster:"/rzRwTcFvttcN1ZpX2xv4j3tSdJu.jpg"},
+  {id:38,title:"Eternal Sunshine of the Spotless Mind",year:2004,runtime:108,genres:["romance","sci-fi"],moods:["emotional","intense","thoughtful"],styles:["emotional","character"],audience:["date","solo","friends"],culture:["indie","classic"],country:"USA",platforms:["HBO Max"],poster:null},
+  {id:194662,title:"Birdman",year:2014,runtime:119,genres:["drama","comedy"],moods:["stylish","intense","witty"],styles:["stylish","character"],audience:["solo","friends","date"],culture:["indie","mainstream"],country:"USA",platforms:["Hulu"],poster:"/rS49UywG3dQpEVOciRMMM8CmkB7.jpg"},
+  {id:680,title:"Pulp Fiction",year:1994,runtime:154,genres:["thriller","crime"],moods:["intense","witty","stylish"],styles:["stylish","dialogue"],audience:["friends","solo","date"],culture:["classic","mainstream"],country:"USA",platforms:["Hulu","Paramount+"],poster:"/d5iIlFn5s0ImszCzBPmSX68DaBJ.jpg"},
+  {id:155,title:"The Dark Knight",year:2008,runtime:152,genres:["action","thriller","crime"],moods:["intense","dark","epic"],styles:["stylish","plot","character"],audience:["friends","solo","date"],culture:["blockbuster","mainstream"],country:"USA",platforms:["HBO Max"],poster:"/qJ2tW6WMUDux911r6m7EmRef0WH.jpg"},
+  {id:530915,title:"1917",year:2019,runtime:119,genres:["war","drama"],moods:["intense","epic"],styles:["visual","plot"],audience:["solo","friends"],culture:["mainstream","blockbuster"],country:"UK",platforms:["Apple TV+","Paramount+"],poster:null},
+  {id:27205,title:"Inception",year:2010,runtime:148,genres:["sci-fi","action"],moods:["intense","mind-bending","epic"],styles:["plot","visual"],audience:["friends","solo","date"],culture:["blockbuster","mainstream"],country:"USA",platforms:["Netflix"],poster:"/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg"},
+  {id:438631,title:"Dune",year:2021,runtime:155,genres:["sci-fi","adventure"],moods:["epic","intense","mind-bending"],styles:["visual","plot","epic"],audience:["solo","friends"],culture:["blockbuster","mainstream"],country:"USA",platforms:["HBO Max"],poster:"/d5NXSklXo0qyIYkgV94XAgMIckC.jpg"},
+  {id:157336,title:"Interstellar",year:2014,runtime:169,genres:["sci-fi","drama"],moods:["epic","emotional","mind-bending"],styles:["visual","plot","emotional"],audience:["solo","friends","family"],culture:["blockbuster","mainstream"],country:"USA",platforms:["Paramount+","Prime Video"],poster:"/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg"},
+  {id:1399,title:"Game of Thrones",year:2011,runtime:60,genres:["drama","fantasy"],moods:["intense","epic","dark"],styles:["plot","character","epic"],audience:["solo","friends"],culture:["mainstream","epic"],country:"USA",platforms:["HBO Max"],poster:"/u3bZgnGQ9T01sWNhyveQzIwwwuP.jpg"},
+  {id:1124,title:"The Prestige",year:2006,runtime:130,genres:["thriller","drama"],moods:["intense","mind-bending"],styles:["plot","twist","character"],audience:["solo","friends","date"],culture:["classic","mainstream"],country:"USA",platforms:["HBO Max"],poster:null},
+  {id:496243,title:"Parasite",year:2019,runtime:132,genres:["thriller","drama"],moods:["intense","mind-bending","dark","stylish"],styles:["plot","stylish","social"],audience:["friends","date","solo"],culture:["international","classic"],country:"South Korea",platforms:["Hulu"],poster:"/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg"},
+  {id:240,title:"The Godfather Part II",year:1974,runtime:202,genres:["crime","drama"],moods:["epic","intense","dark"],styles:["character","plot","epic"],audience:["solo","date"],culture:["classic","epic"],country:"USA",platforms:["Paramount+"],poster:null},
+  {id:1574,title:"City of God",year:2002,runtime:130,genres:["crime","drama"],moods:["intense","energetic"],styles:["energetic","social","plot"],audience:["friends","solo"],culture:["international","classic"],country:"Brazil",platforms:["Hulu"],poster:null},
+  {id:769,title:"Goodfellas",year:1990,runtime:145,genres:["crime","drama"],moods:["intense","stylish"],styles:["character","stylish","dialogue"],audience:["friends","date","solo"],culture:["classic","mainstream"],country:"USA",platforms:["HBO Max"],poster:null},
+  {id:11,title:"Star Wars: A New Hope",year:1977,runtime:121,genres:["sci-fi","adventure"],moods:["epic","fun","energetic"],styles:["epic","fun","character"],audience:["family","friends","kids"],culture:["classic","blockbuster"],country:"USA",platforms:["Disney+"],poster:"/6FfCtgtfraGskG5UWiJ9lsClCoQ.jpg"},
+  {id:76341,title:"Mad Max: Fury Road",year:2015,runtime:120,genres:["action","adventure"],moods:["intense","energetic","epic"],styles:["visual","energetic","epic"],audience:["friends","solo","date"],culture:["mainstream","blockbuster"],country:"Australia",platforms:["HBO Max"],poster:"/kqjL17yufvn9OVLyXYpvtyrpaF0.jpg"},
+  {id:496243,title:"Amelie",year:2001,runtime:122,genres:["romance","comedy"],moods:["light","warm","feel-good"],styles:["visual","character","stylish"],audience:["date","solo","friends"],culture:["international","indie","classic"],country:"France",platforms:["HBO Max"],poster:null}
+];
+
+// ============================================================
+// Keyword dictionaries across 5 dimensions:
+//   mood, time, country, audience (social), style, culture (vintage/indie/...)
+// Plus STRESS_SIGNALS for negation handling.
+// ============================================================
+const MOOD_KEYWORDS = {
+  "funny":"funny","comedy":"funny","comedic":"funny","hilarious":"funny","laugh":"funny","silly":"funny","witty":"funny",
+  "light":"light","feel-good":"feel-good","happy":"feel-good","cheerful":"feel-good","uplifting":"feel-good","cozy":"warm",
+  "warm":"warm","romantic":"warm","love":"warm","heartwarming":"warm","tender":"warm","sweet":"warm","cute":"warm",
+  "intense":"intense","dark":"dark","scary":"intense","horror":"intense","thrilling":"intense","creepy":"dark","gritty":"intense",
+  "epic":"epic","grand":"epic","big":"epic","spectacular":"epic","blockbuster":"epic",
+  "thoughtful":"thoughtful","smart":"thoughtful","clever":"thoughtful","philosophical":"thoughtful","reflective":"thoughtful","deep":"thoughtful",
+  "energetic":"energetic","action":"energetic","exciting":"energetic","adrenaline":"energetic","thrilling":"energetic",
+  "emotional":"emotional","touching":"emotional","sad":"emotional","moving":"emotional","heartbreaking":"emotional","cry":"emotional"
+};
+const STRESS_SIGNALS = ["nervous","anxious","stressed","stressful","tired","overwhelmed","lonely","worry","worrying","anxiety","bad day","rough day","depressed","down"];
+const TIME_KEYWORDS = {
+  "30 min":30,"30min":30,"30 minutes":30,"half hour":30,"30m":30,
+  "45 min":45,"45 minutes":45,"45m":45,
+  "1 hour":60,"60 min":60,"60m":60,"one hour":60,"an hour":60,
+  "90 min":90,"1.5 hour":90,"90m":90,"1h30":90,
+  "2 hour":120,"2h":120,"two hours":120
+};
+const COUNTRY_KEYWORDS = {
+  "american":"USA","hollywood":"USA","us movie":"USA","u.s.":"USA",
+  "chinese":"China","china":"China","c-drama":"China","mainland":"China","hong kong":"Hong Kong","hk":"Hong Kong","taiwan":"Taiwan",
+  "japanese":"Japan","japan":"Japan","anime":"Japan","j-drama":"Japan",
+  "korean":"South Korea","korea":"South Korea","k-drama":"South Korea","k-movie":"South Korea",
+  "british":"UK","uk":"UK","england":"UK","britain":"UK",
+  "european":"Europe","french":"France","italian":"Italy","german":"Germany","spanish":"Spain"
+};
+const AUDIENCE_KEYWORDS = {
+  "alone":"alone","solo":"alone","by myself":"alone","myself":"alone","just me":"alone",
+  "with friends":"friends","friends":"friends","buddies":"friends","group":"friends","hangout":"friends",
+  "date":"date","dating":"date","girlfriend":"date","boyfriend":"date","partner":"date","romantic evening":"date","wife":"date","husband":"date",
+  "family":"family","kids":"family","children":"family","parents":"family","with my kid":"family","with my kids":"family","my son":"family","my daughter":"family"
+};
+const STYLE_KEYWORDS = {
+  "visual":"visual","visuals":"visual","cinematography":"visual","beautiful":"visual","pretty":"visual","stunning":"visual","cinematic":"visual","gorgeous":"visual",
+  "story":"story","plot":"story","narrative":"story","writing":"story","script":"story","ending":"story","twist":"story","mystery":"story",
+  "character":"character","characters":"character","acting":"character","performance":"character","cast":"character","dialogue":"character","portrayal":"character"
+};
+const CULTURE_KEYWORDS = {
+  "foreign":"international","exotic":"international","different culture":"international","world":"international","overseas":"international","non-english":"international","subtitled":"international",
+  "classic":"classic","old":"classic","vintage":"classic","retro":"classic","timeless":"classic","from the 90s":"classic","from the 80s":"classic",
+  "indie":"indie","arthouse":"indie","art house":"indie","independent":"indie","auteur":"indie",
+  "blockbuster":"blockbuster","big budget":"blockbuster","summer":"blockbuster"
+};
+
+function parseTime(t) { const l=t.toLowerCase(); for (const[k,v] of Object.entries(TIME_KEYWORDS)) if (l.includes(k)) return v;
+  const m=l.match(/(\d+)\s*(min|mins|minutes|h|hr|hour|hours)/); if (m) return m[2].startsWith("h")?+m[1]*60:+m[1]; return null; }
+function parseMoods(t) { const l=t.toLowerCase(); const f=new Set();
+  for (const[k,v] of Object.entries(MOOD_KEYWORDS)) if (l.includes(k)) f.add(v);
+  for (const s of STRESS_SIGNALS) { if (l.includes(s)) { f.add("light"); f.add("warm"); break; } }
+  return f; }
+function parseCountry(t) { const l=t.toLowerCase(); const f=new Set();
+  for (const[k,v] of Object.entries(COUNTRY_KEYWORDS)) if (l.includes(k)) f.add(v); return f; }
+function parseAudience(t) { const l=t.toLowerCase(); const f=new Set();
+  for (const[k,v] of Object.entries(AUDIENCE_KEYWORDS)) if (l.includes(k)) f.add(v); return f; }
+function parseStyle(t) { const l=t.toLowerCase(); const f=new Set();
+  for (const[k,v] of Object.entries(STYLE_KEYWORDS)) if (l.includes(k)) f.add(v); return f; }
+function parseCulture(t) { const l=t.toLowerCase(); const f=new Set();
+  for (const[k,v] of Object.entries(CULTURE_KEYWORDS)) if (l.includes(k)) f.add(v); return f; }
+
+// ============================================================
+// Recommendation
+// ============================================================
+function recommend(userInput) {
+  const t = parseTime(userInput);
+  const moods = parseMoods(userInput);
+  const countries = parseCountry(userInput);
+  const audience = parseAudience(userInput);
+  const styles = parseStyle(userInput);
+  const cultures = parseCulture(userInput);
+
+  const scored = MOVIES.map(m => {
+    let score = 0;
+    // Time: bell curve
+    if (t) {
+      const d = Math.abs(m.runtime - t);
+      if (d <= 10) score += 25;
+      else if (d <= 25) score += 15;
+      else if (d <= 45) score += 0;
+      else score -= 15;
+    } else score += 5;
+    // Mood
+    let mh = 0; m.moods.forEach(x => { if (moods.has(x)) mh++; });
+    score += mh * 10;
+    // Country (soft)
+    if (countries.size > 0) {
+      if (countries.has(m.country)) score += 20; else score -= 5;
+    } else score += 2;
+    // Audience (medium weight)
+    if (audience.size > 0) {
+      let ah = 0; m.audience.forEach(x => { if (audience.has(x)) ah++; });
+      score += ah * 10;
+    }
+    // Style (medium weight)
+    if (styles.size > 0) {
+      let sh = 0; m.styles.forEach(x => { if (styles.has(x)) sh++; });
+      score += sh * 10;
+    }
+    // Culture
+    if (cultures.size > 0) {
+      let ch = 0; m.culture.forEach(x => { if (cultures.has(x)) ch++; });
+      score += ch * 8;
+    }
+    score += (m.id % 17) * 0.3;
+    return {m, score};
+  });
+  scored.sort((a, b) => b.score - a.score);
+  // Top 3 with genre variety
+  const top = [];
+  const usedG = new Set();
+  for (const s of scored) {
+    if (top.length >= 3) break;
+    if (top.length >= 1 && usedG.has(s.m.genres[0])) continue;
+    top.push(s.m);
+    usedG.add(s.m.genres[0]);
+  }
+  for (const s of scored) {
+    if (top.length >= 3) break;
+    if (!top.includes(s.m)) top.push(s.m);
+  }
+  return {picks: top.slice(0,3), parsed: {t, moods, countries, audience, styles, cultures}};
+}
+
+function rationaleFor(m, parsed) {
+  const parts = [];
+  if (parsed.t) {
+    if (Math.abs(m.runtime - parsed.t) <= 15) parts.push(`Fits your ${parsed.t}-min window (it's ${m.runtime} min).`);
+    else parts.push(`${m.runtime} min — close to your window.`);
+  } else parts.push(`${m.runtime} min runtime.`);
+  const moodMatch = m.moods.find(x => parsed.moods.has(x));
+  if (moodMatch) parts.push(`Has a ${moodMatch} tone.`);
+  const styleMatch = m.styles.find(x => parsed.styles.has(x));
+  if (styleMatch) parts.push(`Strong ${styleMatch}.`);
+  const audMatch = m.audience.find(x => parsed.audience.has(x));
+  if (audMatch) parts.push(`Great ${audMatch} viewing.`);
+  const culMatch = m.culture.find(x => parsed.cultures.has(x));
+  if (culMatch) parts.push(`Fits your ${culMatch} preference.`);
+  parts.push(`On ${m.platforms[0]}.`);
+  return parts.join(" ");
+}
+
+function detectedBadges(parsed) {
+  const tags = [];
+  if (parsed.t) tags.push(`${parsed.t} min`);
+  for (const m of parsed.moods) tags.push(m);
+  for (const a of parsed.audience) tags.push("for " + a);
+  for (const s of parsed.styles) tags.push("style: " + s);
+  for (const c of parsed.cultures) tags.push(c);
+  for (const c of parsed.countries) tags.push(c);
+  return tags;
+}
+
+// ============================================================
+// UI
+// ============================================================
+const chat = document.getElementById("chat");
+const input = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
+let startedAt = null, alreadyPicked = false;
+
+function renderUserMsg(text) { const d=document.createElement("div"); d.className="msg-user"; d.textContent=text; chat.appendChild(d); }
+
+function renderResults(userInput, picks, parsed) {
+  const label = document.createElement("div");
+  label.className = "msg-ai-label";
+  label.textContent = "VibePick picked 3 for you:";
+  chat.appendChild(label);
+  // Show detected tags
+  const tags = detectedBadges(parsed);
+  if (tags.length > 0) {
+    const badges = document.createElement("div");
+    badges.className = "msg-ai-badges";
+    badges.innerHTML = tags.slice(0, 6).map(t => `<span class="msg-ai-badge">${t}</span>`).join("");
+    chat.appendChild(badges);
+  }
+  picks.forEach((m, idx) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.movieId = m.id;
+    card.innerHTML = `
+      <div class="poster">${m.poster ? `<img src="https://image.tmdb.org/t/p/w185${m.poster}" alt="${m.title}">` : 'poster'}</div>
+      <div class="info">
+        <h3>${idx+1}. ${m.title} (${m.year})</h3>
+        <div class="meta">${m.runtime} min · ${m.country} · ${m.genres.join(", ")}</div>
+        <div class="platforms">Streaming on: ${m.platforms.join(", ")}</div>
+        <div class="rationale">"${rationaleFor(m, parsed)}"</div>
+      </div>`;
+    card.addEventListener("click", () => handlePick(m, card));
+    chat.appendChild(card);
+  });
+}
+
+function handlePick(m, card) {
+  if (alreadyPicked) return;
+  alreadyPicked = true;
+  const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+  document.querySelectorAll(".card").forEach(c => c.classList.remove("picked"));
+  card.classList.add("picked");
+  localStorage.setItem("vibepick_pick", JSON.stringify({movie_id: m.id, movie_title: m.title, time_to_pick_s: parseFloat(elapsed), parsed_dims: Object.fromEntries(Object.entries({t: parseTime(input.value), m: [...parseMoods(input.value)]}))}));
+  setTimeout(() => {
+    const t = document.createElement("div");
+    t.className = "thanks";
+    t.innerHTML = `<div>You picked</div><div class="picked-title">${m.title} (${m.year})</div><div>Time to first pick: ${elapsed} seconds</div><div style="margin-top: 10px; font-size: 13px;">Return to the survey to continue.</div>`;
+    chat.appendChild(t);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }, 200);
+}
+
+function handleSend() {
+  const text = input.value.trim();
+  if (!text) return;
+  sendBtn.disabled = true; input.value = ""; alreadyPicked = false;
+  renderUserMsg(text);
+  startedAt = Date.now();
+  setTimeout(() => {
+    const {picks, parsed} = recommend(text);
+    if (picks.length === 0) {
+      const err = document.createElement("div");
+      err.className = "msg-user"; err.style.background = "#fee";
+      err.textContent = "Sorry, I couldn't find any matches. Try a different request.";
+      chat.appendChild(err);
+    } else {
+      renderResults(text, picks, parsed);
+    }
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    sendBtn.disabled = false; input.focus();
+  }, 400);
+}
+input.addEventListener("keydown", e => { if (e.key === "Enter" && !sendBtn.disabled) handleSend(); });
+</script>
+</body>
+</html>
