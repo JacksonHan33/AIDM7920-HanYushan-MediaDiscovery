@@ -147,3 +147,24 @@ All questions above, all response scales, and all outcomes are **frozen** in thi
 1. Recorded in `docs/analysis-plan.md` §10 Amendments log
 2. Labeled exploratory
 3. Justified in the Phase 1 report
+
+
+---
+
+## ADDENDUM (2026-10-18) — 4 market-validation questions
+
+Per teacher feedback, the following questions should be inserted into the live Google Form **after the existing Q3 (Prolific ID)**. These questions collect the demand-side evidence referenced in `docs/market-analysis.md`.
+
+**Insert at position Q1a (after Q1 Prolific ID):**
+
+| Q# | Question | Type | Options |
+|---|---|---|---|
+| Q1a | How often do you switch between streaming services to find something to watch? | Multiple choice (Required) | `Daily / Weekly / Monthly / Rarely` |
+
+**Insert at position Q3a/b/c (after Q3 Have you used a video recommendation tool before?):**
+
+| Q# | Question | Type | Options |
+|---|---|---|---|
+| Q3a | In the past month, how many times did you want to watch something but couldn't easily find WHERE it was streaming? | Multiple choice (Required) | `0 / 1-2 / 3-5 / 6+` |
+| Q3b | What's your biggest pain point when looking for something to watch? (multi-select) | Checkboxes (Required) | `Don't know which service has the movie / Too many services to check one by one / Recommendations are bad / Don't know what's new / Other` |
+| Q3c | How much time do you typically spend searching for something to watch? | Multiple choice (Required) | `< 5 min / 5-15 min / 15-30 min / > 30 min` |

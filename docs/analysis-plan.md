@@ -137,3 +137,19 @@ Every change after the freeze is logged here. Outcome-informed changes are label
 |---|---|---|
 | Author / PM | Han Yushan | 2026-10-13 |
 | (Instructor consulted if needed) | Prof. Charles Feng (@fffchaobu) | TBD |
+
+
+---
+
+## 11. Market analysis layer (added 2026-10-18)
+
+Per teacher feedback in class on 2026-10-16, Phase 1 must also include a **media analytics** layer that justifies the product direction before the UX comparison. The full market analysis is in `docs/market-analysis.md`, with 5 real academic sources + 1 industry source in `docs/references.md`.
+
+Key findings the market analysis establishes (so the UX study below is justified):
+
+1. **Supply-side fragmentation** — across 189 popular movies, the median has 2-3 distinct streaming providers (Adomavicius & Tuzhilin 2005; Hennig-Thurau et al. 2006).
+2. **Demand-side pain** — 157 Google Play reviews of cross-platform video apps show the dominant complaint is "where to watch" (Bauer & Schedl 2019; Pu, Chen & Hu 2011).
+3. **Search-trend signal** — Google Trends shows "what to watch" and "JustWatch" queries are growing (industry context).
+4. **Industry validation** — JustWatch (40M MAU), Reelgood, TV Time already serve this market (Gomez-Uribe & Hunt 2015 industry framing).
+
+The pre-registered UX study below remains unchanged; this market layer sits above it as the "is this worth doing?" justification.
