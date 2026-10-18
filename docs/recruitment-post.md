@@ -1,4 +1,5 @@
 # Phase 1 Recruitment Post — VibePick vs MoodFlix (15 min user study)
+> **Use the SAME form URL for both WeChat and Prolific. No per-participant IDs needed.**
 
 > Choose **Chinese** or **English** version. The Chinese version targets WeChat groups (current audience); the English version targets Prolific or international contacts.
 
