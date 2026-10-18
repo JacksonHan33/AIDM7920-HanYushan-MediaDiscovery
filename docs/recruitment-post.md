@@ -23,7 +23,7 @@
 
 **你拿到什么**：你帮了我一次，**我也愿意回报**。完成后告诉我，我发你 **¥10 红包 / 一杯咖啡钱**。
 
-**链接**：[Google Form URL]
+**链接**：https://docs.google.com/forms/d/e/1FAIpQLSf95h1957PIAEqKd9j77O0y8O17GGnv9bdC2kOUgBBu0P5wuA/viewform?usp=sharing&ouid=112880457308003231863
 
 **报名或有问题**：直接私聊我。**每个用过 Netflix / 优酷 / B 站的人都可以**。
 
@@ -44,4 +44,4 @@ We are researchers comparing two prototypes (a chat-style AI recommender and a f
 
 **Duration:** ~15 minutes
 
-**Link:** [Google Form URL]
+**Link:** https://docs.google.com/forms/d/e/1FAIpQLSf95h1957PIAEqKd9j77O0y8O17GGnv9bdC2kOUgBBu0P5wuA/viewform?usp=sharing&ouid=112880457308003231863
